@@ -15,6 +15,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityPlaceEvent;
+import org.bukkit.entity.ArmorStand;
 
 public final class BuilderListener implements Listener {
     private static final long LOOP_WINDOW_MILLIS = 60_000L;
@@ -71,5 +73,16 @@ public final class BuilderListener implements Listener {
         repService.changeRep(event.getPlayer().getUniqueId(), event.getPlayer().getName(), RepCategory.BUILDER, points, null, null);
         boardService.scheduleRefresh();
     }
-}
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onArmorStandPlace(EntityPlaceEvent event) {
+        if (!(event.getEntity() instanceof ArmorStand)) {
+            return;
+        }
+        if (!regionService.isInVillageOrMarket(event.getEntity().getLocation())) {
+            return;
+        }
+        repService.changeRep(event.getPlayer().getUniqueId(), event.getPlayer().getName(), RepCategory.BUILDER, 2, null, null);
+        boardService.scheduleRefresh();
+    }
+}

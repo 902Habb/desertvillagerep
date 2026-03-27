@@ -6,6 +6,7 @@ import java.util.EnumSet;
 import java.util.Set;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -48,10 +49,29 @@ public final class PluginConfig {
         if (premiumBuilderMaterials.contains(material)) {
             return 2;
         }
+        if (isPremiumPattern(material)) {
+            return 2;
+        }
         if (standardBuilderMaterials.contains(material)) {
             return 1;
         }
         return 0;
     }
-}
 
+    private boolean isPremiumPattern(Material material) {
+        String name = material.name();
+        if (Tag.BANNERS.isTagged(material)) {
+            return true;
+        }
+        if (Tag.FLOWERS.isTagged(material)) {
+            return true;
+        }
+        if (Tag.FLOWER_POTS.isTagged(material)) {
+            return true;
+        }
+        if (name.endsWith("_STAINED_GLASS") || name.endsWith("_STAINED_GLASS_PANE")) {
+            return true;
+        }
+        return name.endsWith("_TERRACOTTA") && material != Material.TERRACOTTA;
+    }
+}
