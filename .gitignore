@@ -1,0 +1,9 @@
+target/
+.m2repo/
+.toolchain/
+*.class
+*.log
+.DS_Store
+.Rhistory
+.idea/
+.vscode/

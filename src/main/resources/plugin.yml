@@ -1,0 +1,20 @@
+name: DesertVillageRep
+version: 0.1.0-SNAPSHOT
+main: dev.hamzah.desertvillagerep.DesertVillageRepPlugin
+api-version: "1.21"
+authors: [hamzah]
+description: Region-based village reputation board with floating text displays.
+
+commands:
+  rep:
+    description: Main command for DesertVillageRep.
+    usage: /rep
+    permission: desertrep.use
+
+permissions:
+  desertrep.use:
+    description: Allows use of public reputation commands.
+    default: true
+  desertrep.admin:
+    description: Allows setup and admin commands for DesertVillageRep.
+    default: op
