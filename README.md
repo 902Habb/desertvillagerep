@@ -76,7 +76,7 @@ The board is not a GUI and it is not a client mod. It is a physical in-world flo
 - The footer shows the current category title holders
 - The board refreshes automatically and can also be force-refreshed by command
 
-The board position is saved in the plugin database. If you place it incorrectly, you can move it with `/rep admin moveboard` and the plugin will remove the old floating board and recreate it at the new location.
+The board position is saved in the plugin database. If you place it incorrectly, you can move it with `/rep admin moveboard` and the plugin will remove the old floating board and recreate it at the new location. If you want to fully clear the board and start over later, you can use `/rep admin removeboard`.
 
 ## Regions
 
@@ -340,6 +340,18 @@ Use this if:
 - you want it aligned with a different wall or monument
 
 This does not create a second board. It replaces the old floating board with a new one at the new saved location.
+
+### `/rep admin removeboard`
+
+Removes the floating board entirely and clears the saved board location.
+
+Use this if:
+
+- you want to start over from scratch
+- you accidentally placed the board in a bad location
+- you want to remove the floating text for a while without moving it somewhere else
+
+After running this, use `/rep admin createboard` again whenever you want to place the board back down.
 
 ### `/rep admin addproject builder <id> <points>`
 

@@ -155,6 +155,7 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
             case "pos2" -> handlePos(sender, false);
             case "setregion" -> handleSetRegion(sender, args);
             case "createboard", "moveboard" -> handleBoardAnchor(sender);
+            case "removeboard" -> handleRemoveBoard(sender);
             case "addproject" -> handleAddProject(sender, args);
             case "completeproject" -> handleCompleteProject(sender, args);
             case "adjust" -> handleAdjust(sender, args);
@@ -220,6 +221,12 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
         }
         boardService.setBoardAnchor(player.getLocation());
         sender.sendMessage(ChatColor.GREEN + "Board anchor set at your current location and facing.");
+        return true;
+    }
+
+    private boolean handleRemoveBoard(CommandSender sender) {
+        boardService.removeBoard();
+        sender.sendMessage(ChatColor.GREEN + "Board removed. Use /rep admin createboard to place it again.");
         return true;
     }
 
@@ -343,6 +350,7 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.YELLOW + "/rep admin setregion <village|market|protector>");
         sender.sendMessage(ChatColor.YELLOW + "/rep admin createboard");
         sender.sendMessage(ChatColor.YELLOW + "/rep admin moveboard");
+        sender.sendMessage(ChatColor.YELLOW + "/rep admin removeboard");
         sender.sendMessage(ChatColor.YELLOW + "/rep admin addproject builder <id> <points>");
         sender.sendMessage(ChatColor.YELLOW + "/rep admin completeproject <id> <player>");
         sender.sendMessage(ChatColor.YELLOW + "/rep admin adjust <player> <category> <amount> [reason]");
@@ -386,7 +394,7 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
             return List.of();
         }
         if (args.length == 2) {
-            return partial(args[1], List.of("pos1", "pos2", "setregion", "createboard", "moveboard", "addproject", "completeproject", "adjust", "import", "refresh"));
+            return partial(args[1], List.of("pos1", "pos2", "setregion", "createboard", "moveboard", "removeboard", "addproject", "completeproject", "adjust", "import", "refresh"));
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("setregion")) {
             return partial(args[2], List.of("village", "market", "protector"));

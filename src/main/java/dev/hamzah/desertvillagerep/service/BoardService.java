@@ -59,6 +59,8 @@ public final class BoardService {
             repeatingRefreshTask.cancel();
             repeatingRefreshTask = null;
         }
+        cleanupExistingBoardEntities();
+        displayIds.clear();
     }
 
     public void setBoardAnchor(Location location) {
@@ -74,6 +76,12 @@ public final class BoardService {
                 0.0f
         ));
         recreateBoard();
+    }
+
+    public void removeBoard() {
+        database.deleteBoardAnchor();
+        cleanupExistingBoardEntities();
+        displayIds.clear();
     }
 
     public void scheduleRefresh() {

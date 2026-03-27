@@ -405,6 +405,14 @@ public final class Database {
         }
     }
 
+    public synchronized void deleteBoardAnchor() {
+        try (PreparedStatement statement = connection.prepareStatement("DELETE FROM board_anchor WHERE id = 1")) {
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to delete board anchor", exception);
+        }
+    }
+
     public synchronized void saveProject(ProjectDefinition definition) {
         try (PreparedStatement statement = connection.prepareStatement("""
                 INSERT INTO projects (id, category, points)
@@ -495,4 +503,3 @@ public final class Database {
         return lastKnownName;
     }
 }
-
