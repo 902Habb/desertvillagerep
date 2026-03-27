@@ -34,6 +34,31 @@ Builder reputation can also be awarded manually through admin-defined one-time b
 - `watchtower`
 - `walls`
 
+### Premium Builder Scores
+
+These placements currently award `+2` Builder rep instead of `+1`.
+
+| Premium score | What counts | Notes |
+| --- | --- | --- |
+| `+2` | `GOLD_BLOCK` | Explicit premium block |
+| `+2` | `DIAMOND_BLOCK` | Explicit premium block |
+| `+2` | `NETHERITE_BLOCK` | Explicit premium block |
+| `+2` | All colored terracotta | Any `*_TERRACOTTA` block except plain `TERRACOTTA` |
+| `+2` | All flowers | Uses the built-in Bukkit flower tag |
+| `+2` | All flower pots | Includes potted variants through the built-in flower-pot tag |
+| `+2` | `FLOWER_POT` | Explicit premium block |
+| `+2` | `DECORATED_POT` | Explicit premium block |
+| `+2` | All banners | Uses the built-in Bukkit banner tag |
+| `+2` | All stained glass | Any `*_STAINED_GLASS` block |
+| `+2` | All stained glass panes | Any `*_STAINED_GLASS_PANE` block |
+| `+2` | `SOUL_TORCH` | Explicit premium block |
+| `+2` | `SOUL_LANTERN` | Explicit premium block |
+| `+2` | `BELL` | Explicit premium block |
+| `+2` | All red sandstone variants | `RED_SANDSTONE`, `CUT_RED_SANDSTONE`, `SMOOTH_RED_SANDSTONE`, `CHISELED_RED_SANDSTONE`, `RED_SANDSTONE_STAIRS`, `RED_SANDSTONE_SLAB`, `RED_SANDSTONE_WALL` |
+| `+2` | Armor stands | Awarded when an `ArmorStand` entity is placed in `village` or `market` |
+
+If a block is not in the premium list but is still approved for Builder scoring, it normally gives `+1`.
+
 ### Trader Reputation
 
 Trader reputation rewards village economy and villager care.
@@ -165,6 +190,46 @@ Do not upload:
 7. Start the server again
 8. Let the server fully boot
 9. Join the server in-game and run the setup commands
+
+### Updating The Plugin Without Losing Stats
+
+You can safely update the plugin and keep all existing scores, regions, board position, project data, and legacy snapshots.
+
+What preserves your stats:
+
+- the plugin data folder
+- the SQLite database file
+- the plugin config file
+
+Important files and folders on the server:
+
+- `plugins/DesertVillageRep/`
+- `plugins/DesertVillageRep/desertvillagerep.db`
+- `plugins/DesertVillageRep/config.yml`
+
+Safe update flow for a future `v1.1`-style update:
+
+1. Build the new jar locally
+2. Stop the Apex server
+3. In Apex `File Manager`, open the `plugins` folder
+4. Replace the old `DesertVillageRep` jar with the new one
+5. Do not delete the `plugins/DesertVillageRep/` folder
+6. Start the server again
+
+As long as you only replace the jar and keep the plugin data folder, your stats should remain intact.
+
+Extra safety tip:
+
+- before updating, download a backup copy of `plugins/DesertVillageRep/`
+- if you want maximum safety, also back up the whole server or world before major plugin updates
+
+What would cause data loss:
+
+- deleting `plugins/DesertVillageRep/desertvillagerep.db`
+- deleting the entire `plugins/DesertVillageRep/` folder
+- installing a broken experimental build that changes the database format without a migration
+
+For normal updates of this plugin, the intended workflow is simple jar replacement, not a fresh reinstall.
 
 ## First-Time Setup In Game
 
