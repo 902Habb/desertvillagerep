@@ -18,13 +18,13 @@ The plugin watches for specific server events and converts them into reputation 
 
 ### Builder Reputation
 
-Builder reputation rewards players for placing approved building and decorative blocks inside the configured `village` or `market` regions.
+Builder reputation rewards players for placing blocks inside the configured `village` or `market` regions.
 
-- Most normal structural blocks are worth `+1`
-- Premium decorative blocks are worth `+2`
+- Every placed block is worth `+1`
 - Only block placement is counted
 - Breaking blocks does not give points
-- Obvious same-player place-break-replace loops at the exact same coordinates within the configured anti-loop window are ignored
+- There is no premium block system
+- There is no anti-loop protection in the current version
 
 Builder reputation can also be awarded manually through admin-defined one-time builder projects such as:
 
@@ -34,30 +34,12 @@ Builder reputation can also be awarded manually through admin-defined one-time b
 - `watchtower`
 - `walls`
 
-### Premium Builder Scores
+Builder reputation also supports a legacy seed. On import, the plugin estimates historical building activity from vanilla `minecraft:used` block-item stats and stores that as a `legacyBuilderSeed`.
 
-These placements currently award `+2` Builder rep instead of `+1`.
+That means Builder rep is shown as:
 
-| Premium score | What counts | Notes |
-| --- | --- | --- |
-| `+2` | `GOLD_BLOCK` | Explicit premium block |
-| `+2` | `DIAMOND_BLOCK` | Explicit premium block |
-| `+2` | `NETHERITE_BLOCK` | Explicit premium block |
-| `+2` | All colored terracotta | Any `*_TERRACOTTA` block except plain `TERRACOTTA` |
-| `+2` | All flowers | Uses the built-in Bukkit flower tag |
-| `+2` | All flower pots | Includes potted variants through the built-in flower-pot tag |
-| `+2` | `FLOWER_POT` | Explicit premium block |
-| `+2` | `DECORATED_POT` | Explicit premium block |
-| `+2` | All banners | Uses the built-in Bukkit banner tag |
-| `+2` | All stained glass | Any `*_STAINED_GLASS` block |
-| `+2` | All stained glass panes | Any `*_STAINED_GLASS_PANE` block |
-| `+2` | `SOUL_TORCH` | Explicit premium block |
-| `+2` | `SOUL_LANTERN` | Explicit premium block |
-| `+2` | `BELL` | Explicit premium block |
-| `+2` | All red sandstone variants | `RED_SANDSTONE`, `CUT_RED_SANDSTONE`, `SMOOTH_RED_SANDSTONE`, `CHISELED_RED_SANDSTONE`, `RED_SANDSTONE_STAIRS`, `RED_SANDSTONE_SLAB`, `RED_SANDSTONE_WALL` |
-| `+2` | Armor stands | Awarded when an `ArmorStand` entity is placed in `village` or `market` |
-
-If a block is not in the premium list but is still approved for Builder scoring, it normally gives `+1`.
+- `live builder rep`
+- plus `legacy imported builder rep`
 
 ### Trader Reputation
 

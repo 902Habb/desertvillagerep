@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -96,7 +97,9 @@ public final class LegacyImportService {
             JsonObject stats = object(root, "stats");
             JsonObject custom = object(stats, "minecraft:custom");
             JsonObject killed = object(stats, "minecraft:killed");
+            JsonObject used = object(stats, "minecraft:used");
 
+            int estimatedBlocksPlaced = sumUsedBlockItems(used);
             int villagerTrades = integer(custom, "minecraft:traded_with_villager");
             long playTime = longValue(custom, "minecraft:play_time");
             if (playTime == 0L) {
@@ -111,6 +114,7 @@ public final class LegacyImportService {
             LegacyStatsRecord record = new LegacyStatsRecord(
                     uuid,
                     playerName,
+                    estimatedBlocksPlaced,
                     villagerTrades,
                     playTime,
                     deaths,
@@ -120,6 +124,7 @@ public final class LegacyImportService {
             );
 
             repService.saveLegacyStats(record);
+            repService.setLegacyBuilderSeed(uuid, playerName, estimatedBlocksPlaced);
             repService.setLegacyTraderSeed(uuid, playerName, villagerTrades);
             return true;
         } catch (IOException | IllegalStateException exception) {
@@ -169,5 +174,24 @@ public final class LegacyImportService {
         }
         return total;
     }
-}
 
+    private int sumUsedBlockItems(JsonObject used) {
+        int total = 0;
+        for (var entry : used.entrySet()) {
+            Material material = materialFromStatKey(entry.getKey());
+            if (material == null || !material.isBlock()) {
+                continue;
+            }
+            total += entry.getValue().getAsInt();
+        }
+        return total;
+    }
+
+    private Material materialFromStatKey(String statKey) {
+        if (!statKey.startsWith("minecraft:")) {
+            return null;
+        }
+        String normalized = statKey.substring("minecraft:".length()).toUpperCase();
+        return Material.matchMaterial(normalized);
+    }
+}

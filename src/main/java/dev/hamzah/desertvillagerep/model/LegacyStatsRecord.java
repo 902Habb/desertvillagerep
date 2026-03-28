@@ -5,6 +5,7 @@ import java.util.UUID;
 public record LegacyStatsRecord(
         UUID uuid,
         String lastName,
+        int estimatedBlocksPlaced,
         int villagerTrades,
         long playTimeTicks,
         int deaths,
@@ -13,4 +14,3 @@ public record LegacyStatsRecord(
         String importedAt
 ) {
 }
-

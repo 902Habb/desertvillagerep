@@ -47,6 +47,7 @@ public final class Database {
                             uuid TEXT PRIMARY KEY,
                             last_name TEXT NOT NULL,
                             builder_points INTEGER NOT NULL DEFAULT 0,
+                            legacy_builder_seed INTEGER NOT NULL DEFAULT 0,
                             trader_live_points INTEGER NOT NULL DEFAULT 0,
                             legacy_trader_seed INTEGER NOT NULL DEFAULT 0,
                             protector_points INTEGER NOT NULL DEFAULT 0,
@@ -57,6 +58,7 @@ public final class Database {
                         CREATE TABLE IF NOT EXISTS legacy_snapshot (
                             uuid TEXT PRIMARY KEY,
                             last_name TEXT NOT NULL,
+                            estimated_blocks_placed INTEGER NOT NULL DEFAULT 0,
                             villager_trades INTEGER NOT NULL DEFAULT 0,
                             play_time_ticks INTEGER NOT NULL DEFAULT 0,
                             deaths INTEGER NOT NULL DEFAULT 0,
@@ -114,6 +116,8 @@ public final class Database {
                             created_at TEXT NOT NULL
                         )
                         """);
+                ensureColumn("player_rep", "legacy_builder_seed", "INTEGER NOT NULL DEFAULT 0");
+                ensureColumn("legacy_snapshot", "estimated_blocks_placed", "INTEGER NOT NULL DEFAULT 0");
             }
         } catch (ClassNotFoundException | SQLException exception) {
             throw new IllegalStateException("Failed to initialize SQLite database", exception);
@@ -151,19 +155,20 @@ public final class Database {
     public synchronized PlayerRepRecord getPlayerRep(UUID uuid, String fallbackName) {
         upsertPlayer(uuid, fallbackName);
         try (PreparedStatement statement = connection.prepareStatement("""
-                SELECT uuid, last_name, builder_points, trader_live_points, legacy_trader_seed, protector_points
+                SELECT uuid, last_name, builder_points, legacy_builder_seed, trader_live_points, legacy_trader_seed, protector_points
                 FROM player_rep
                 WHERE uuid = ?
                 """)) {
             statement.setString(1, uuid.toString());
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (!resultSet.next()) {
-                    return new PlayerRepRecord(uuid, resolveName(uuid, fallbackName), 0, 0, 0, 0);
+                    return new PlayerRepRecord(uuid, resolveName(uuid, fallbackName), 0, 0, 0, 0, 0);
                 }
                 return new PlayerRepRecord(
                         UUID.fromString(resultSet.getString("uuid")),
                         resultSet.getString("last_name"),
                         resultSet.getInt("builder_points"),
+                        resultSet.getInt("legacy_builder_seed"),
                         resultSet.getInt("trader_live_points"),
                         resultSet.getInt("legacy_trader_seed"),
                         resultSet.getInt("protector_points")
@@ -210,13 +215,30 @@ public final class Database {
         }
     }
 
+    public synchronized void setLegacyBuilderSeed(UUID uuid, String lastKnownName, int seedValue) {
+        upsertPlayer(uuid, lastKnownName);
+        try (PreparedStatement statement = connection.prepareStatement("""
+                UPDATE player_rep
+                SET legacy_builder_seed = ?, updated_at = ?
+                WHERE uuid = ?
+                """)) {
+            statement.setInt(1, Math.max(0, seedValue));
+            statement.setString(2, Instant.now().toString());
+            statement.setString(3, uuid.toString());
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to set legacy builder seed", exception);
+        }
+    }
+
     public synchronized void saveLegacySnapshot(LegacyStatsRecord record) {
         upsertPlayer(record.uuid(), record.lastName());
         try (PreparedStatement statement = connection.prepareStatement("""
-                INSERT INTO legacy_snapshot (uuid, last_name, villager_trades, play_time_ticks, deaths, hostile_kills, walked_centimeters, imported_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO legacy_snapshot (uuid, last_name, estimated_blocks_placed, villager_trades, play_time_ticks, deaths, hostile_kills, walked_centimeters, imported_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(uuid) DO UPDATE SET
                     last_name = excluded.last_name,
+                    estimated_blocks_placed = excluded.estimated_blocks_placed,
                     villager_trades = excluded.villager_trades,
                     play_time_ticks = excluded.play_time_ticks,
                     deaths = excluded.deaths,
@@ -226,12 +248,13 @@ public final class Database {
                 """)) {
             statement.setString(1, record.uuid().toString());
             statement.setString(2, record.lastName());
-            statement.setInt(3, record.villagerTrades());
-            statement.setLong(4, record.playTimeTicks());
-            statement.setInt(5, record.deaths());
-            statement.setInt(6, record.hostileKills());
-            statement.setLong(7, record.walkedCentimeters());
-            statement.setString(8, record.importedAt());
+            statement.setInt(3, record.estimatedBlocksPlaced());
+            statement.setInt(4, record.villagerTrades());
+            statement.setLong(5, record.playTimeTicks());
+            statement.setInt(6, record.deaths());
+            statement.setInt(7, record.hostileKills());
+            statement.setLong(8, record.walkedCentimeters());
+            statement.setString(9, record.importedAt());
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save legacy snapshot", exception);
@@ -240,7 +263,7 @@ public final class Database {
 
     public synchronized LegacyStatsRecord getLegacySnapshot(UUID uuid, String fallbackName) {
         try (PreparedStatement statement = connection.prepareStatement("""
-                SELECT uuid, last_name, villager_trades, play_time_ticks, deaths, hostile_kills, walked_centimeters, imported_at
+                SELECT uuid, last_name, estimated_blocks_placed, villager_trades, play_time_ticks, deaths, hostile_kills, walked_centimeters, imported_at
                 FROM legacy_snapshot
                 WHERE uuid = ?
                 """)) {
@@ -252,6 +275,7 @@ public final class Database {
                 return new LegacyStatsRecord(
                         UUID.fromString(resultSet.getString("uuid")),
                         resultSet.getString("last_name"),
+                        resultSet.getInt("estimated_blocks_placed"),
                         resultSet.getInt("villager_trades"),
                         resultSet.getLong("play_time_ticks"),
                         resultSet.getInt("deaths"),
@@ -268,9 +292,9 @@ public final class Database {
     public synchronized List<LeaderboardEntry> getTop(RepCategory category, int limit) {
         String query = switch (category) {
             case BUILDER -> """
-                    SELECT uuid, last_name, builder_points AS score
+                    SELECT uuid, last_name, (builder_points + legacy_builder_seed) AS score
                     FROM player_rep
-                    ORDER BY builder_points DESC, last_name ASC
+                    ORDER BY (builder_points + legacy_builder_seed) DESC, last_name ASC
                     LIMIT ?
                     """;
             case TRADER -> """
@@ -501,5 +525,26 @@ public final class Database {
             return uuid.toString().substring(0, 8);
         }
         return lastKnownName;
+    }
+
+    private void ensureColumn(String tableName, String columnName, String definition) throws SQLException {
+        if (hasColumn(tableName, columnName)) {
+            return;
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE " + tableName + " ADD COLUMN " + columnName + " " + definition);
+        }
+    }
+
+    private boolean hasColumn(String tableName, String columnName) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("PRAGMA table_info(" + tableName + ")");
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                if (columnName.equalsIgnoreCase(resultSet.getString("name"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

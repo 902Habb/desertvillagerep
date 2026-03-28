@@ -130,6 +130,7 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         sender.sendMessage(ChatColor.GOLD + "Legacy stats for " + legacy.lastName() + ":");
+        sender.sendMessage(ChatColor.YELLOW + "Estimated blocks placed: " + ChatColor.WHITE + legacy.estimatedBlocksPlaced());
         sender.sendMessage(ChatColor.YELLOW + "Villager trades: " + ChatColor.WHITE + legacy.villagerTrades());
         sender.sendMessage(ChatColor.YELLOW + "Hostile kills: " + ChatColor.WHITE + legacy.hostileKills());
         sender.sendMessage(ChatColor.YELLOW + "Deaths: " + ChatColor.WHITE + legacy.deaths());
@@ -327,7 +328,8 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
     private void sendPlayerStats(CommandSender sender, OfflinePlayer target) {
         PlayerRepRecord profile = repService.getProfile(target);
         sender.sendMessage(ChatColor.GOLD + "Reputation for " + nameFor(target) + ":");
-        sender.sendMessage(ChatColor.YELLOW + "Builder: " + ChatColor.WHITE + profile.builderPoints());
+        sender.sendMessage(ChatColor.YELLOW + "Builder: " + ChatColor.WHITE + profile.scoreFor(RepCategory.BUILDER)
+                + ChatColor.DARK_GRAY + " (" + profile.builderPoints() + " live, " + profile.legacyBuilderSeed() + " legacy)");
         sender.sendMessage(ChatColor.AQUA + "Trader: " + ChatColor.WHITE + profile.scoreFor(RepCategory.TRADER)
                 + ChatColor.DARK_GRAY + " (" + profile.traderLivePoints() + " live, " + profile.legacyTraderSeed() + " legacy)");
         sender.sendMessage(ChatColor.RED + "Protector: " + ChatColor.WHITE + profile.protectorPoints());
