@@ -214,8 +214,9 @@ public final class BoardService {
         TextDisplay display = world.spawn(location, TextDisplay.class, entity -> {
             entity.setText(text);
             entity.setBillboard(Display.Billboard.FIXED);
-            entity.setSeeThrough(true);
+            entity.setSeeThrough(false);
             entity.setShadowed(true);
+            entity.setViewRange(pluginConfig.boardVisibilityRange());
             entity.addScoreboardTag(BOARD_TAG);
             entity.setRotation(anchor.yaw(), anchor.pitch());
         });

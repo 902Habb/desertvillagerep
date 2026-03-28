@@ -1,6 +1,7 @@
 board:
   title: "&6&lDESERT VILLAGE REPUTATION"
   refresh-seconds: 10
+  visibility-radius: 5
 
 builder:
   standard-materials:

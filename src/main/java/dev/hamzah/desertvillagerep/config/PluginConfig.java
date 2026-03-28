@@ -13,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class PluginConfig {
     private final String boardTitle;
     private final long boardRefreshTicks;
+    private final float boardVisibilityRange;
     private final Set<Material> standardBuilderMaterials;
     private final Set<Material> premiumBuilderMaterials;
 
@@ -20,6 +21,7 @@ public final class PluginConfig {
         FileConfiguration config = plugin.getConfig();
         this.boardTitle = ChatColor.translateAlternateColorCodes('&', config.getString("board.title", "&6&lDESERT VILLAGE REPUTATION"));
         this.boardRefreshTicks = Math.max(20L, config.getLong("board.refresh-seconds", 10L) * 20L);
+        this.boardVisibilityRange = (float) Math.max(1.0d, config.getDouble("board.visibility-radius", 5.0d));
         this.standardBuilderMaterials = parseMaterials(config.getStringList("builder.standard-materials"), plugin);
         this.premiumBuilderMaterials = parseMaterials(config.getStringList("builder.premium-materials"), plugin);
     }
@@ -43,6 +45,10 @@ public final class PluginConfig {
 
     public long boardRefreshTicks() {
         return boardRefreshTicks;
+    }
+
+    public float boardVisibilityRange() {
+        return boardVisibilityRange;
     }
 
     public int builderPointsFor(Material material) {
