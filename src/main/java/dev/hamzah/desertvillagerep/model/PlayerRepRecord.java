@@ -9,13 +9,14 @@ public record PlayerRepRecord(
         int legacyBuilderSeed,
         int traderLivePoints,
         int legacyTraderSeed,
-        int protectorPoints
+        int protectorPoints,
+        int legacyProtectorSeed
 ) {
     public int scoreFor(RepCategory category) {
         return switch (category) {
             case BUILDER -> builderPoints + legacyBuilderSeed;
             case TRADER -> traderLivePoints + legacyTraderSeed;
-            case PROTECTOR -> protectorPoints;
+            case PROTECTOR -> protectorPoints + legacyProtectorSeed;
         };
     }
 }

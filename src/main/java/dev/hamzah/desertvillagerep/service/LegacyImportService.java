@@ -3,6 +3,7 @@ package dev.hamzah.desertvillagerep.service;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import dev.hamzah.desertvillagerep.listener.ProtectorListener;
 import dev.hamzah.desertvillagerep.model.LegacyStatsRecord;
 import java.io.File;
 import java.io.FileReader;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.EntityType;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
@@ -20,23 +22,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class LegacyImportService {
     public record ImportSummary(int scanned, int imported, String sourcePath) {
     }
-
-    private static final Set<String> HOSTILE_KILL_KEYS = Set.of(
-            "minecraft:zombie",
-            "minecraft:husk",
-            "minecraft:skeleton",
-            "minecraft:spider",
-            "minecraft:cave_spider",
-            "minecraft:creeper",
-            "minecraft:witch",
-            "minecraft:stray",
-            "minecraft:phantom",
-            "minecraft:pillager",
-            "minecraft:vindicator",
-            "minecraft:ravager",
-            "minecraft:evoker",
-            "minecraft:slime"
-    );
 
     private final JavaPlugin plugin;
     private final Database database;
@@ -126,6 +111,7 @@ public final class LegacyImportService {
             repService.saveLegacyStats(record);
             repService.setLegacyBuilderSeed(uuid, playerName, estimatedBlocksPlaced);
             repService.setLegacyTraderSeed(uuid, playerName, villagerTrades);
+            repService.setLegacyProtectorSeed(uuid, playerName, hostileKills);
             return true;
         } catch (IOException | IllegalStateException exception) {
             plugin.getLogger().warning("Failed to import legacy stats from " + statFile.getName() + ": " + exception.getMessage());
@@ -169,8 +155,12 @@ public final class LegacyImportService {
 
     private int sumHostileKills(JsonObject killed) {
         int total = 0;
-        for (String key : HOSTILE_KILL_KEYS) {
-            total += integer(killed, key);
+        for (var entry : killed.entrySet()) {
+            EntityType entityType = entityTypeFromStatKey(entry.getKey());
+            if (entityType == null || !ProtectorListener.countsAsProtectorKill(entityType)) {
+                continue;
+            }
+            total += entry.getValue().getAsInt();
         }
         return total;
     }
@@ -193,5 +183,17 @@ public final class LegacyImportService {
         }
         String normalized = statKey.substring("minecraft:".length()).toUpperCase();
         return Material.matchMaterial(normalized);
+    }
+
+    private EntityType entityTypeFromStatKey(String statKey) {
+        if (!statKey.startsWith("minecraft:")) {
+            return null;
+        }
+        String normalized = statKey.substring("minecraft:".length()).toUpperCase();
+        try {
+            return EntityType.valueOf(normalized);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 }

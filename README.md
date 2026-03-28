@@ -60,18 +60,54 @@ That means Trader rep is shown as:
 
 ### Protector Reputation
 
-Protector reputation rewards players for defending a specific configured area.
+Protector reputation rewards players for killing hostile mobs anywhere on the server.
 
-- Only hostile mob kills inside the `protector` region count
-- Only player-caused kills count
-- Only approved natural-like spawn reasons count
-- Mob values vary by threat level
+- Any hostile mob killed by a player counts
+- It is not limited to a configured region
+- It tracks live from normal `EntityDeathEvent` kills
+- Every counted hostile mob kill is worth `+1`
 
-Examples:
+The exact hostile mobs counted by this plugin are:
 
-- common mobs like zombies and skeletons are worth `+1`
-- stronger threats like creepers, witches, pillagers, and phantoms are worth `+2`
-- high-threat mobs like ravagers and evokers are worth `+3`
+- `BLAZE`
+- `BOGGED`
+- `BREEZE`
+- `CAVE_SPIDER`
+- `CREEPER`
+- `DROWNED`
+- `ELDER_GUARDIAN`
+- `ENDERMAN`
+- `ENDER_DRAGON`
+- `ENDERMITE`
+- `EVOKER`
+- `GHAST`
+- `GIANT`
+- `GUARDIAN`
+- `HOGLIN`
+- `HUSK`
+- `ILLUSIONER`
+- `MAGMA_CUBE`
+- `PHANTOM`
+- `PIGLIN`
+- `PIGLIN_BRUTE`
+- `PILLAGER`
+- `RAVAGER`
+- `SHULKER`
+- `SILVERFISH`
+- `SKELETON`
+- `SLIME`
+- `SPIDER`
+- `STRAY`
+- `VEX`
+- `VINDICATOR`
+- `WARDEN`
+- `WITCH`
+- `WITHER`
+- `WITHER_SKELETON`
+- `ZOGLIN`
+- `ZOMBIE`
+- `ZOMBIE_VILLAGER`
+- `ZOMBIFIED_PIGLIN`
 
 ## Board Behavior
 
@@ -83,15 +119,14 @@ The board is not a GUI and it is not a client mod. It is a physical in-world flo
 - The footer shows the current category title holders
 - The board refreshes automatically and can also be force-refreshed by command
 
-The board position is saved in the plugin database. If you place it incorrectly, you can move it with `/rep admin moveboard` and the plugin will remove the old floating board and recreate it at the new location. If you want to fully clear the board and start over later, you can use `/rep admin removeboard`.
+The board position is saved in the plugin database. If you place it incorrectly, you can move it with `/rep moveboard` and the plugin will remove the old floating board and recreate it at the new location. If you want to fully clear the board and start over later, you can use `/rep removeboard`.
 
 ## Regions
 
-The plugin uses three admin-defined cuboid regions:
+The plugin uses two admin-defined cuboid regions:
 
 - `village`
 - `market`
-- `protector`
 
 These are defined entirely in-game by setting two corners and then saving the region.
 
@@ -224,7 +259,7 @@ Then stand where you want the floating text to appear and face the direction the
 Run:
 
 ```text
-/rep admin createboard
+/rep createboard
 ```
 
 ### Step 2: Define the Village Region
@@ -232,19 +267,19 @@ Run:
 Look at one corner block and run:
 
 ```text
-/rep admin pos1
+/rep pos1
 ```
 
 Look at the opposite corner block and run:
 
 ```text
-/rep admin pos2
+/rep pos2
 ```
 
 Then save it:
 
 ```text
-/rep admin setregion village
+/rep setregion village
 ```
 
 ### Step 3: Define the Market Region
@@ -252,27 +287,17 @@ Then save it:
 Repeat:
 
 ```text
-/rep admin pos1
-/rep admin pos2
-/rep admin setregion market
+/rep pos1
+/rep pos2
+/rep setregion market
 ```
 
-### Step 4: Define the Protector Region
+### Step 4: Import Legacy Stats
 
-Repeat:
-
-```text
-/rep admin pos1
-/rep admin pos2
-/rep admin setregion protector
-```
-
-### Step 5: Import Legacy Trader Stats
-
-If you want historical villager trades imported from existing player stat files:
+If you want historical villager trades, building activity estimates, and hostile mob kills imported from existing player stat files:
 
 ```text
-/rep admin import legacy all
+/rep import legacy all
 ```
 
 ## Commands
@@ -285,10 +310,9 @@ Shows your own current reputation totals.
 
 It displays:
 
-- your Builder score
-- your Trader score
-- the Trader breakdown between live score and imported legacy seed
-- your Protector score
+- your Builder score with live and legacy breakdown
+- your Trader score with live and legacy breakdown
+- your Protector score with live and legacy breakdown
 
 ### `/rep stats [player]`
 
@@ -334,7 +358,7 @@ Examples:
 
 ## Admin Commands
 
-### `/rep admin pos1`
+### `/rep pos1`
 
 Saves the first selection point for a region.
 
@@ -344,39 +368,37 @@ Behavior:
 - otherwise uses your current block position
 - only works in-game
 
-Use this before `/rep admin setregion ...`.
+Use this before `/rep setregion ...`.
 
-### `/rep admin pos2`
+### `/rep pos2`
 
 Saves the second selection point for a region.
 
 Behavior is the same as `pos1`, but for the opposite corner.
 
-### `/rep admin setregion <village|market|protector>`
+### `/rep setregion <village|market>`
 
 Converts the saved `pos1` and `pos2` into a real tracked cuboid region.
 
 Examples:
 
 ```text
-/rep admin setregion village
-/rep admin setregion market
-/rep admin setregion protector
+/rep setregion village
+/rep setregion market
 ```
 
 What each region means:
 
 - `village`: used for builder scoring and villager-care actions
 - `market`: used for builder scoring in a market or bazaar area
-- `protector`: used for hostile mob defense scoring
 
-### `/rep admin createboard`
+### `/rep createboard`
 
 Creates the floating reputation board at your current location and facing direction.
 
 Use this the first time you place the board.
 
-### `/rep admin moveboard`
+### `/rep moveboard`
 
 Moves the board to your current location and facing direction.
 
@@ -388,7 +410,7 @@ Use this if:
 
 This does not create a second board. It replaces the old floating board with a new one at the new saved location.
 
-### `/rep admin removeboard`
+### `/rep removeboard`
 
 Removes the floating board entirely and clears the saved board location.
 
@@ -398,44 +420,44 @@ Use this if:
 - you accidentally placed the board in a bad location
 - you want to remove the floating text for a while without moving it somewhere else
 
-After running this, use `/rep admin createboard` again whenever you want to place the board back down.
+After running this, use `/rep createboard` again whenever you want to place the board back down.
 
-### `/rep admin addproject builder <id> <points>`
+### `/rep addproject builder <id> <points>`
 
 Creates a one-time Builder milestone project that can later be awarded to a player.
 
 Examples:
 
 ```text
-/rep admin addproject builder fountain 50
-/rep admin addproject builder market 100
-/rep admin addproject builder walls 75
+/rep addproject builder fountain 50
+/rep addproject builder market 100
+/rep addproject builder walls 75
 ```
 
 The `id` should be a short unique name.
 
-### `/rep admin completeproject <id> <player>`
+### `/rep completeproject <id> <player>`
 
 Awards a saved builder project to a player once.
 
 Example:
 
 ```text
-/rep admin completeproject fountain gigagoogi
+/rep completeproject fountain gigagoogi
 ```
 
 If that player has already received that project once, it will not award it again.
 
-### `/rep admin adjust <player> <category> <amount> [reason]`
+### `/rep adjust <player> <category> <amount> [reason]`
 
 Manually adds or removes reputation from a player.
 
 Examples:
 
 ```text
-/rep admin adjust HAbbood trader 25 cured villagers
-/rep admin adjust sockmonkeybob builder -10 accidental test score
-/rep admin adjust gigagoogi protector 40 raid defense
+/rep adjust HAbbood trader 25 cured villagers
+/rep adjust sockmonkeybob builder -10 accidental test score
+/rep adjust gigagoogi protector 40 raid defense
 ```
 
 Notes:
@@ -445,29 +467,26 @@ Notes:
 - the optional reason is stored in rep history
 - scores do not go below zero
 
-### `/rep admin import legacy <all|player>`
+### `/rep import legacy <all|player>`
 
 Imports legacy player stats from vanilla world stat files.
 
 Examples:
 
 ```text
-/rep admin import legacy all
-/rep admin import legacy gigagoogi
+/rep import legacy all
+/rep import legacy gigagoogi
 ```
 
 What it does:
 
 - reads player stats files from the world stats folder
 - saves a snapshot into the plugin database
+- seeds Builder rep using estimated historical block-placement activity from vanilla `minecraft:used` block-item stats
 - seeds Trader rep using historical villager trade counts
+- seeds Protector rep using imported hostile mob kill stats
 
-What it does not do:
-
-- it does not reconstruct historical Builder rep
-- it does not reconstruct historical Protector rep by region
-
-### `/rep admin refresh`
+### `/rep refresh`
 
 Forces the board to redraw immediately.
 
@@ -483,12 +502,11 @@ Useful if:
 2. Upload the final jar to Apex
 3. Restart the server
 4. Build the physical board
-5. Run `/rep admin createboard`
+5. Run `/rep createboard`
 6. Define `village`
 7. Define `market`
-8. Define `protector`
-9. Run `/rep admin import legacy all`
-10. Add any builder projects you want
+8. Run `/rep import legacy all`
+9. Add any builder projects you want
 
 ## Git And GitHub
 

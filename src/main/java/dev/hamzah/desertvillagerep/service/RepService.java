@@ -49,4 +49,8 @@ public final class RepService {
     public void setLegacyBuilderSeed(UUID uuid, String lastKnownName, int seedValue) {
         database.setLegacyBuilderSeed(uuid, lastKnownName, seedValue);
     }
+
+    public void setLegacyProtectorSeed(UUID uuid, String lastKnownName, int seedValue) {
+        database.setLegacyProtectorSeed(uuid, lastKnownName, seedValue);
+    }
 }

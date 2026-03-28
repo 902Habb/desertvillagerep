@@ -46,7 +46,7 @@ public final class DesertVillageRepPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new BuilderListener(pluginConfig, regionService, repService, boardService), this);
         getServer().getPluginManager().registerEvents(new TraderListener(regionService, repService, boardService), this);
-        getServer().getPluginManager().registerEvents(new ProtectorListener(regionService, repService, boardService), this);
+        getServer().getPluginManager().registerEvents(new ProtectorListener(repService, boardService), this);
 
         boardService.start();
         getLogger().info("DesertVillageRep enabled.");

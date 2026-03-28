@@ -29,6 +29,11 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 public final class RepCommand implements CommandExecutor, TabCompleter {
+    private static final List<String> ADMIN_SUBCOMMANDS = List.of(
+            "pos1", "pos2", "setregion", "createboard", "moveboard", "removeboard",
+            "addproject", "completeproject", "adjust", "import", "refresh"
+    );
+
     private final RegionService regionService;
     private final RepService repService;
     private final ProjectService projectService;
@@ -65,8 +70,10 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
             case "top" -> handleTop(sender, args);
             case "stats" -> handleStats(sender, args);
             case "legacy" -> handleLegacy(sender, args);
-            case "admin" -> handleAdmin(sender, args);
             default -> {
+                if (isAdminRoot(root)) {
+                    yield handleAdmin(sender, args);
+                }
                 sendUsage(sender);
                 yield true;
             }
@@ -145,22 +152,23 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(ChatColor.RED + "You do not have permission to use admin commands.");
             return true;
         }
-        if (args.length < 2) {
+        String[] normalizedArgs = normalizeAdminArgs(args);
+        if (normalizedArgs.length == 0) {
             sendAdminUsage(sender);
             return true;
         }
 
-        String subcommand = args[1].toLowerCase(Locale.ROOT);
+        String subcommand = normalizedArgs[0].toLowerCase(Locale.ROOT);
         return switch (subcommand) {
             case "pos1" -> handlePos(sender, true);
             case "pos2" -> handlePos(sender, false);
-            case "setregion" -> handleSetRegion(sender, args);
+            case "setregion" -> handleSetRegion(sender, normalizedArgs);
             case "createboard", "moveboard" -> handleBoardAnchor(sender);
             case "removeboard" -> handleRemoveBoard(sender);
-            case "addproject" -> handleAddProject(sender, args);
-            case "completeproject" -> handleCompleteProject(sender, args);
-            case "adjust" -> handleAdjust(sender, args);
-            case "import" -> handleImport(sender, args);
+            case "addproject" -> handleAddProject(sender, normalizedArgs);
+            case "completeproject" -> handleCompleteProject(sender, normalizedArgs);
+            case "adjust" -> handleAdjust(sender, normalizedArgs);
+            case "import" -> handleImport(sender, normalizedArgs);
             case "refresh" -> {
                 boardService.refreshNow();
                 sender.sendMessage(ChatColor.GREEN + "Board refreshed.");
@@ -187,17 +195,17 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleSetRegion(CommandSender sender, String[] args) {
-        if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + "Usage: /rep admin setregion <village|market|protector>");
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /rep setregion <village|market>");
             return true;
         }
         Player player = requirePlayer(sender);
         if (player == null) {
             return true;
         }
-        RegionType type = RegionType.fromInput(args[2]);
+        RegionType type = RegionType.fromInput(args[1]);
         if (type == null) {
-            sender.sendMessage(ChatColor.RED + "Unknown region type: " + args[2]);
+            sender.sendMessage(ChatColor.RED + "Unknown region type: " + args[1]);
             return true;
         }
         try {
@@ -227,40 +235,40 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
 
     private boolean handleRemoveBoard(CommandSender sender) {
         boardService.removeBoard();
-        sender.sendMessage(ChatColor.GREEN + "Board removed. Use /rep admin createboard to place it again.");
+        sender.sendMessage(ChatColor.GREEN + "Board removed. Use /rep createboard to place it again.");
         return true;
     }
 
     private boolean handleAddProject(CommandSender sender, String[] args) {
-        if (args.length < 5) {
-            sender.sendMessage(ChatColor.RED + "Usage: /rep admin addproject builder <id> <points>");
+        if (args.length < 4) {
+            sender.sendMessage(ChatColor.RED + "Usage: /rep addproject builder <id> <points>");
             return true;
         }
-        RepCategory category = RepCategory.fromInput(args[2]);
+        RepCategory category = RepCategory.fromInput(args[1]);
         if (category == null || category != RepCategory.BUILDER) {
             sender.sendMessage(ChatColor.RED + "Only builder projects are available in v1.");
             return true;
         }
         int points;
         try {
-            points = Integer.parseInt(args[4]);
+            points = Integer.parseInt(args[3]);
         } catch (NumberFormatException exception) {
             sender.sendMessage(ChatColor.RED + "Points must be a whole number.");
             return true;
         }
-        String id = args[3].toLowerCase(Locale.ROOT);
+        String id = args[2].toLowerCase(Locale.ROOT);
         projectService.saveProject(new ProjectDefinition(id, category, Math.max(0, points)));
         sender.sendMessage(ChatColor.GREEN + "Saved builder project '" + id + "' for " + points + " points.");
         return true;
     }
 
     private boolean handleCompleteProject(CommandSender sender, String[] args) {
-        if (args.length < 4) {
-            sender.sendMessage(ChatColor.RED + "Usage: /rep admin completeproject <id> <player>");
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /rep completeproject <id> <player>");
             return true;
         }
-        String id = args[2].toLowerCase(Locale.ROOT);
-        OfflinePlayer target = resolvePlayer(args[3]);
+        String id = args[1].toLowerCase(Locale.ROOT);
+        OfflinePlayer target = resolvePlayer(args[2]);
         UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : null;
         ProjectService.CompletionResult result = projectService.completeProject(id, target.getUniqueId(), nameFor(target), actorUuid);
         switch (result) {
@@ -275,24 +283,24 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleAdjust(CommandSender sender, String[] args) {
-        if (args.length < 5) {
-            sender.sendMessage(ChatColor.RED + "Usage: /rep admin adjust <player> <category> <amount> [reason]");
+        if (args.length < 4) {
+            sender.sendMessage(ChatColor.RED + "Usage: /rep adjust <player> <category> <amount> [reason]");
             return true;
         }
-        OfflinePlayer target = resolvePlayer(args[2]);
-        RepCategory category = RepCategory.fromInput(args[3]);
+        OfflinePlayer target = resolvePlayer(args[1]);
+        RepCategory category = RepCategory.fromInput(args[2]);
         if (category == null) {
-            sender.sendMessage(ChatColor.RED + "Unknown category: " + args[3]);
+            sender.sendMessage(ChatColor.RED + "Unknown category: " + args[2]);
             return true;
         }
         int amount;
         try {
-            amount = Integer.parseInt(args[4]);
+            amount = Integer.parseInt(args[3]);
         } catch (NumberFormatException exception) {
             sender.sendMessage(ChatColor.RED + "Amount must be a whole number.");
             return true;
         }
-        String reason = args.length >= 6 ? String.join(" ", Arrays.copyOfRange(args, 5, args.length)) : "Manual adjustment";
+        String reason = args.length >= 5 ? String.join(" ", Arrays.copyOfRange(args, 4, args.length)) : "Manual adjustment";
         UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : null;
         repService.changeRep(target.getUniqueId(), nameFor(target), category, amount, actorUuid, reason);
         boardService.scheduleRefresh();
@@ -301,23 +309,23 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleImport(CommandSender sender, String[] args) {
-        if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + "Usage: /rep admin import legacy <all|player>");
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /rep import legacy <all|player>");
             return true;
         }
-        if (!args[2].equalsIgnoreCase("legacy")) {
+        if (!args[1].equalsIgnoreCase("legacy")) {
             sender.sendMessage(ChatColor.RED + "Only 'legacy' import is supported.");
             return true;
         }
-        if (args.length < 4) {
-            sender.sendMessage(ChatColor.RED + "Usage: /rep admin import legacy <all|player>");
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /rep import legacy <all|player>");
             return true;
         }
         LegacyImportService.ImportSummary summary;
-        if (args[3].equalsIgnoreCase("all")) {
+        if (args[2].equalsIgnoreCase("all")) {
             summary = legacyImportService.importAll();
         } else {
-            summary = legacyImportService.importPlayer(resolvePlayer(args[3]));
+            summary = legacyImportService.importPlayer(resolvePlayer(args[2]));
         }
         boardService.scheduleRefresh();
         sender.sendMessage(ChatColor.GREEN + "Legacy import finished. Imported " + summary.imported()
@@ -332,7 +340,8 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
                 + ChatColor.DARK_GRAY + " (" + profile.builderPoints() + " live, " + profile.legacyBuilderSeed() + " legacy)");
         sender.sendMessage(ChatColor.AQUA + "Trader: " + ChatColor.WHITE + profile.scoreFor(RepCategory.TRADER)
                 + ChatColor.DARK_GRAY + " (" + profile.traderLivePoints() + " live, " + profile.legacyTraderSeed() + " legacy)");
-        sender.sendMessage(ChatColor.RED + "Protector: " + ChatColor.WHITE + profile.protectorPoints());
+        sender.sendMessage(ChatColor.RED + "Protector: " + ChatColor.WHITE + profile.scoreFor(RepCategory.PROTECTOR)
+                + ChatColor.DARK_GRAY + " (" + profile.protectorPoints() + " live, " + profile.legacyProtectorSeed() + " legacy)");
     }
 
     private void sendUsage(CommandSender sender) {
@@ -347,17 +356,17 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
 
     private void sendAdminUsage(CommandSender sender) {
         sender.sendMessage(ChatColor.GOLD + "Admin commands:");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin pos1");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin pos2");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin setregion <village|market|protector>");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin createboard");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin moveboard");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin removeboard");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin addproject builder <id> <points>");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin completeproject <id> <player>");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin adjust <player> <category> <amount> [reason]");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin import legacy <all|player>");
-        sender.sendMessage(ChatColor.YELLOW + "/rep admin refresh");
+        sender.sendMessage(ChatColor.YELLOW + "/rep pos1");
+        sender.sendMessage(ChatColor.YELLOW + "/rep pos2");
+        sender.sendMessage(ChatColor.YELLOW + "/rep setregion <village|market>");
+        sender.sendMessage(ChatColor.YELLOW + "/rep createboard");
+        sender.sendMessage(ChatColor.YELLOW + "/rep moveboard");
+        sender.sendMessage(ChatColor.YELLOW + "/rep removeboard");
+        sender.sendMessage(ChatColor.YELLOW + "/rep addproject builder <id> <points>");
+        sender.sendMessage(ChatColor.YELLOW + "/rep completeproject <id> <player>");
+        sender.sendMessage(ChatColor.YELLOW + "/rep adjust <player> <category> <amount> [reason]");
+        sender.sendMessage(ChatColor.YELLOW + "/rep import legacy <all|player>");
+        sender.sendMessage(ChatColor.YELLOW + "/rep refresh");
     }
 
     private OfflinePlayer resolvePlayer(String input) {
@@ -384,7 +393,11 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return partial(args[0], List.of("top", "stats", "legacy", "admin"));
+            List<String> roots = new ArrayList<>(List.of("top", "stats", "legacy"));
+            if (sender.hasPermission("desertrep.admin")) {
+                roots.addAll(ADMIN_SUBCOMMANDS);
+            }
+            return partial(args[0], roots);
         }
         if (args[0].equalsIgnoreCase("top") && args.length == 2) {
             return partial(args[1], List.of("builder", "trader", "protector"));
@@ -392,40 +405,58 @@ public final class RepCommand implements CommandExecutor, TabCompleter {
         if ((args[0].equalsIgnoreCase("stats") || args[0].equalsIgnoreCase("legacy")) && args.length == 2) {
             return partial(args[1], playerNames());
         }
-        if (!args[0].equalsIgnoreCase("admin")) {
+        if (!sender.hasPermission("desertrep.admin")) {
             return List.of();
         }
-        if (args.length == 2) {
-            return partial(args[1], List.of("pos1", "pos2", "setregion", "createboard", "moveboard", "removeboard", "addproject", "completeproject", "adjust", "import", "refresh"));
+        String[] normalizedArgs = normalizeAdminArgs(args);
+        if (normalizedArgs.length == 0) {
+            return List.of();
         }
-        if (args.length == 3 && args[1].equalsIgnoreCase("setregion")) {
-            return partial(args[2], List.of("village", "market", "protector"));
+        if (args[0].equalsIgnoreCase("admin") && args.length == 2) {
+            return partial(args[1], ADMIN_SUBCOMMANDS);
         }
-        if (args.length == 3 && args[1].equalsIgnoreCase("addproject")) {
-            return partial(args[2], List.of("builder"));
+        if (normalizedArgs.length == 2 && normalizedArgs[0].equalsIgnoreCase("setregion")) {
+            return partial(normalizedArgs[1], List.of("village", "market"));
         }
-        if (args.length == 3 && args[1].equalsIgnoreCase("completeproject")) {
-            return partial(args[2], new ArrayList<>(projectService.projectIds()));
+        if (normalizedArgs.length == 2 && normalizedArgs[0].equalsIgnoreCase("addproject")) {
+            return partial(normalizedArgs[1], List.of("builder"));
         }
-        if (args.length == 4 && args[1].equalsIgnoreCase("completeproject")) {
-            return partial(args[3], playerNames());
+        if (normalizedArgs.length == 2 && normalizedArgs[0].equalsIgnoreCase("completeproject")) {
+            return partial(normalizedArgs[1], new ArrayList<>(projectService.projectIds()));
         }
-        if (args.length == 3 && args[1].equalsIgnoreCase("adjust")) {
-            return partial(args[2], playerNames());
+        if (normalizedArgs.length == 3 && normalizedArgs[0].equalsIgnoreCase("completeproject")) {
+            return partial(normalizedArgs[2], playerNames());
         }
-        if (args.length == 4 && args[1].equalsIgnoreCase("adjust")) {
-            return partial(args[3], List.of("builder", "trader", "protector"));
+        if (normalizedArgs.length == 2 && normalizedArgs[0].equalsIgnoreCase("adjust")) {
+            return partial(normalizedArgs[1], playerNames());
         }
-        if (args.length == 3 && args[1].equalsIgnoreCase("import")) {
-            return partial(args[2], List.of("legacy"));
+        if (normalizedArgs.length == 3 && normalizedArgs[0].equalsIgnoreCase("adjust")) {
+            return partial(normalizedArgs[2], List.of("builder", "trader", "protector"));
         }
-        if (args.length == 4 && args[1].equalsIgnoreCase("import") && args[2].equalsIgnoreCase("legacy")) {
+        if (normalizedArgs.length == 2 && normalizedArgs[0].equalsIgnoreCase("import")) {
+            return partial(normalizedArgs[1], List.of("legacy"));
+        }
+        if (normalizedArgs.length == 3 && normalizedArgs[0].equalsIgnoreCase("import") && normalizedArgs[1].equalsIgnoreCase("legacy")) {
             List<String> values = new ArrayList<>();
             values.add("all");
             values.addAll(playerNames());
-            return partial(args[3], values);
+            return partial(normalizedArgs[2], values);
         }
         return List.of();
+    }
+
+    private boolean isAdminRoot(String root) {
+        return root.equalsIgnoreCase("admin") || ADMIN_SUBCOMMANDS.contains(root.toLowerCase(Locale.ROOT));
+    }
+
+    private String[] normalizeAdminArgs(String[] args) {
+        if (args.length == 0) {
+            return args;
+        }
+        if (args[0].equalsIgnoreCase("admin")) {
+            return Arrays.copyOfRange(args, 1, args.length);
+        }
+        return args;
     }
 
     private List<String> partial(String input, Collection<String> values) {

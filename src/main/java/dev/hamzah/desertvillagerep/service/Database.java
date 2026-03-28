@@ -51,6 +51,7 @@ public final class Database {
                             trader_live_points INTEGER NOT NULL DEFAULT 0,
                             legacy_trader_seed INTEGER NOT NULL DEFAULT 0,
                             protector_points INTEGER NOT NULL DEFAULT 0,
+                            legacy_protector_seed INTEGER NOT NULL DEFAULT 0,
                             updated_at TEXT NOT NULL
                         )
                         """);
@@ -118,6 +119,7 @@ public final class Database {
                         """);
                 ensureColumn("player_rep", "legacy_builder_seed", "INTEGER NOT NULL DEFAULT 0");
                 ensureColumn("legacy_snapshot", "estimated_blocks_placed", "INTEGER NOT NULL DEFAULT 0");
+                ensureColumn("player_rep", "legacy_protector_seed", "INTEGER NOT NULL DEFAULT 0");
             }
         } catch (ClassNotFoundException | SQLException exception) {
             throw new IllegalStateException("Failed to initialize SQLite database", exception);
@@ -155,14 +157,14 @@ public final class Database {
     public synchronized PlayerRepRecord getPlayerRep(UUID uuid, String fallbackName) {
         upsertPlayer(uuid, fallbackName);
         try (PreparedStatement statement = connection.prepareStatement("""
-                SELECT uuid, last_name, builder_points, legacy_builder_seed, trader_live_points, legacy_trader_seed, protector_points
+                SELECT uuid, last_name, builder_points, legacy_builder_seed, trader_live_points, legacy_trader_seed, protector_points, legacy_protector_seed
                 FROM player_rep
                 WHERE uuid = ?
                 """)) {
             statement.setString(1, uuid.toString());
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (!resultSet.next()) {
-                    return new PlayerRepRecord(uuid, resolveName(uuid, fallbackName), 0, 0, 0, 0, 0);
+                    return new PlayerRepRecord(uuid, resolveName(uuid, fallbackName), 0, 0, 0, 0, 0, 0);
                 }
                 return new PlayerRepRecord(
                         UUID.fromString(resultSet.getString("uuid")),
@@ -171,7 +173,8 @@ public final class Database {
                         resultSet.getInt("legacy_builder_seed"),
                         resultSet.getInt("trader_live_points"),
                         resultSet.getInt("legacy_trader_seed"),
-                        resultSet.getInt("protector_points")
+                        resultSet.getInt("protector_points"),
+                        resultSet.getInt("legacy_protector_seed")
                 );
             }
         } catch (SQLException exception) {
@@ -228,6 +231,22 @@ public final class Database {
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to set legacy builder seed", exception);
+        }
+    }
+
+    public synchronized void setLegacyProtectorSeed(UUID uuid, String lastKnownName, int seedValue) {
+        upsertPlayer(uuid, lastKnownName);
+        try (PreparedStatement statement = connection.prepareStatement("""
+                UPDATE player_rep
+                SET legacy_protector_seed = ?, updated_at = ?
+                WHERE uuid = ?
+                """)) {
+            statement.setInt(1, Math.max(0, seedValue));
+            statement.setString(2, Instant.now().toString());
+            statement.setString(3, uuid.toString());
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to set legacy protector seed", exception);
         }
     }
 
@@ -304,9 +323,9 @@ public final class Database {
                     LIMIT ?
                     """;
             case PROTECTOR -> """
-                    SELECT uuid, last_name, protector_points AS score
+                    SELECT uuid, last_name, (protector_points + legacy_protector_seed) AS score
                     FROM player_rep
-                    ORDER BY protector_points DESC, last_name ASC
+                    ORDER BY (protector_points + legacy_protector_seed) DESC, last_name ASC
                     LIMIT ?
                     """;
         };
